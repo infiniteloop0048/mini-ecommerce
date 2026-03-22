@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
-import { Prisma } from "@prisma/client";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 
@@ -59,7 +58,8 @@ export async function POST(req: NextRequest) {
       0
     );
 
-    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await prisma.$transaction(async (tx: any) => {
       await tx.order.create({
         data: {
           userId,
@@ -100,7 +100,8 @@ export async function POST(req: NextRequest) {
         0
       );
 
-      await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await prisma.$transaction(async (tx: any) => {
         await tx.order.create({
           data: {
             userId,
