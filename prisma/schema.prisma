@@ -112,7 +112,7 @@ model Order {
   userId           String
   totalPrice       Float
   status           OrderStatus @default(PENDING)
-  stripePaymentId  String?
+  stripePaymentId  String?  @unique
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
 

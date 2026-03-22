@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -71,25 +72,34 @@ export async function POST(req: NextRequest) {
       0
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await prisma.$transaction(async (tx: any) => {
-      await tx.order.create({
-        data: {
-          userId,
-          totalPrice,
-          status: "PROCESSING",
-          stripePaymentId,
-          items: { create: orderItems },
-        },
-      });
-
-      for (const item of orderItems) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: { stock: { decrement: item.quantity } },
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await prisma.$transaction(async (tx: any) => {
+        await tx.order.create({
+          data: {
+            userId,
+            totalPrice,
+            status: "PROCESSING",
+            stripePaymentId,
+            items: { create: orderItems },
+          },
         });
+
+        for (const item of orderItems) {
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { stock: { decrement: item.quantity } },
+          });
+        }
+      });
+    } catch (err) {
+      // P2002 = unique constraint violation — order already exists (race condition).
+      // Return 200 so Stripe does not retry.
+      if (err instanceof PrismaClientKnownRequestError && err.code === "P2002") {
+        return NextResponse.json({ received: true });
       }
-    });
+      throw err;
+    }
   }
 
   return NextResponse.json({ received: true });
