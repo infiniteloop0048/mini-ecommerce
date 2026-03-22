@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import type Stripe from "stripe";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate stock and build Stripe line items
-    const lineItems = [];
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
     for (const item of items) {
       const product = products.find((p: (typeof products)[number]) => p.id === item.productId)!;
       if (product.stock < item.quantity) {
