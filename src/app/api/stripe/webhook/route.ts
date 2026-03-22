@@ -33,6 +33,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing metadata" }, { status: 400 });
     }
 
+    // Idempotency guard — Stripe retries webhooks on timeout/error,
+    // so skip if we already created an order for this payment.
+    const stripePaymentId =
+      typeof session.payment_intent === "string" ? session.payment_intent : null;
+    if (stripePaymentId) {
+      const existing = await prisma.order.findFirst({
+        where: { stripePaymentId },
+      });
+      if (existing) {
+        return NextResponse.json({ received: true });
+      }
+    }
+
     const cartItems = JSON.parse(rawItems) as {
       productId: string;
       quantity: number;
@@ -65,10 +78,7 @@ export async function POST(req: NextRequest) {
           userId,
           totalPrice,
           status: "PROCESSING",
-          stripePaymentId:
-            typeof session.payment_intent === "string"
-              ? session.payment_intent
-              : null,
+          stripePaymentId,
           items: { create: orderItems },
         },
       });
