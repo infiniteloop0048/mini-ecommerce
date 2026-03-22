@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     });
 
     const orderItems = cartItems.map((item) => {
-      const product = products.find((p) => p.id === item.productId)!;
+      const product = products.find((p: (typeof products)[number]) => p.id === item.productId)!;
       return {
         productId: item.productId,
         quantity: item.quantity,

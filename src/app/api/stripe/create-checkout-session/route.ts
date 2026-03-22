@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     // Validate stock and build Stripe line items
     const lineItems = [];
     for (const item of items) {
-      const product = products.find((p) => p.id === item.productId)!;
+      const product = products.find((p: (typeof products)[number]) => p.id === item.productId)!;
       if (product.stock < item.quantity) {
         return NextResponse.json(
           { error: `Insufficient stock for "${product.name}"` },
