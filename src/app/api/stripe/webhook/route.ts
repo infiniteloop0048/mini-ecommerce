@@ -82,45 +82,5 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Handle direct Payment Intent success (for future Elements integration)
-  if (event.type === "payment_intent.succeeded") {
-    const paymentIntent = event.data.object as Stripe.PaymentIntent;
-    const userId = paymentIntent.metadata?.userId;
-    const rawItems = paymentIntent.metadata?.items;
-
-    if (userId && rawItems) {
-      const orderItems = JSON.parse(rawItems) as {
-        productId: string;
-        quantity: number;
-        price: number;
-      }[];
-
-      const totalPrice = orderItems.reduce(
-        (sum, i) => sum + i.price * i.quantity,
-        0
-      );
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await prisma.$transaction(async (tx: any) => {
-        await tx.order.create({
-          data: {
-            userId,
-            totalPrice,
-            status: "PROCESSING",
-            stripePaymentId: paymentIntent.id,
-            items: { create: orderItems },
-          },
-        });
-
-        for (const item of orderItems) {
-          await tx.product.update({
-            where: { id: item.productId },
-            data: { stock: { decrement: item.quantity } },
-          });
-        }
-      });
-    }
-  }
-
   return NextResponse.json({ received: true });
 }
